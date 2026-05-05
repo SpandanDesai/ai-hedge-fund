@@ -1,6 +1,7 @@
 """v2 data pipeline — data provider protocol, FD client, and response models."""
 
 from v2.data.client import FDClient
+from v2.data.yahoo_finance_client import YahooFinanceClient
 from v2.data.models import (
     AnalystEstimate,
     CompanyFacts,
@@ -28,4 +29,5 @@ __all__ = [
     "FinancialMetrics",
     "InsiderTrade",
     "Price",
+    "YahooFinanceClient",
 ]

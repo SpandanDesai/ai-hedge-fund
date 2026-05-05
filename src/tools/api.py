@@ -7,6 +7,7 @@ import time
 
 logger = logging.getLogger(__name__)
 
+from src.tools.yahoo_finance_client import YahooFinanceClient
 from src.data.cache import get_cache
 from src.data.models import (
     CompanyNews,
@@ -24,6 +25,34 @@ from src.data.models import (
 
 # Global cache instance
 _cache = get_cache()
+_yahoo_client = YahooFinanceClient()
+
+
+def _normalize_data_source(value: str) -> str:
+    v = (value or "").strip().lower()
+    if v in {"fd", "financialdatasets", "financial_datasets", "financial-datasets", "financialdatasets.ai"}:
+        return "financialdatasets"
+    if v in {"yahoo", "yf", "yfinance", "yahoo_finance", "yahoo-finance"}:
+        return "yahoo"
+    return v
+
+
+def _resolve_data_source(api_key: str | None = None) -> str:
+    """Choose the data source for this request.
+
+    Precedence:
+      1) Explicit DATA_SOURCE env var
+      2) Financial Datasets key present (arg or env) -> financialdatasets
+      3) Default -> yahoo
+    """
+    configured = _normalize_data_source(os.environ.get("DATA_SOURCE", ""))
+    if configured:
+        return configured
+
+    if api_key or os.environ.get("FINANCIAL_DATASETS_API_KEY"):
+        return "financialdatasets"
+
+    return "yahoo"
 
 
 def _make_api_request(url: str, headers: dict, method: str = "GET", json_data: dict = None, max_retries: int = 3) -> requests.Response:
@@ -62,12 +91,20 @@ def _make_api_request(url: str, headers: dict, method: str = "GET", json_data: d
 
 def get_prices(ticker: str, start_date: str, end_date: str, api_key: str = None) -> list[Price]:
     """Fetch price data from cache or API."""
+    data_source = _resolve_data_source(api_key)
     # Create a cache key that includes all parameters to ensure exact matches
-    cache_key = f"{ticker}_{start_date}_{end_date}"
+    cache_key = f"{data_source}:{ticker}_{start_date}_{end_date}"
     
     # Check cache first - simple exact match
     if cached_data := _cache.get_prices(cache_key):
         return [Price(**price) for price in cached_data]
+
+    if data_source == "yahoo":
+        prices = _yahoo_client.get_prices(ticker, start_date, end_date)
+        if not prices:
+            return []
+        _cache.set_prices(cache_key, [p.model_dump() for p in prices])
+        return prices
 
     # If not in cache, fetch from API
     headers = {}
@@ -104,12 +141,20 @@ def get_financial_metrics(
     api_key: str = None,
 ) -> list[FinancialMetrics]:
     """Fetch financial metrics from cache or API."""
+    data_source = _resolve_data_source(api_key)
     # Create a cache key that includes all parameters to ensure exact matches
-    cache_key = f"{ticker}_{period}_{end_date}_{limit}"
+    cache_key = f"{data_source}:{ticker}_{period}_{end_date}_{limit}"
     
     # Check cache first - simple exact match
     if cached_data := _cache.get_financial_metrics(cache_key):
         return [FinancialMetrics(**metric) for metric in cached_data]
+
+    if data_source == "yahoo":
+        metrics = _yahoo_client.get_financial_metrics(ticker, end_date, period=period, limit=limit)
+        if not metrics:
+            return []
+        _cache.set_financial_metrics(cache_key, [m.model_dump() for m in metrics])
+        return metrics
 
     # If not in cache, fetch from API
     headers = {}
@@ -147,6 +192,10 @@ def search_line_items(
     api_key: str = None,
 ) -> list[LineItem]:
     """Fetch line items from API."""
+    data_source = _resolve_data_source(api_key)
+    if data_source == "yahoo":
+        return _yahoo_client.search_line_items(ticker, line_items, end_date, period=period, limit=limit)
+
     # If not in cache or insufficient data, fetch from API
     headers = {}
     financial_api_key = api_key or os.environ.get("FINANCIAL_DATASETS_API_KEY")
@@ -188,12 +237,18 @@ def get_insider_trades(
     api_key: str = None,
 ) -> list[InsiderTrade]:
     """Fetch insider trades from cache or API."""
+    data_source = _resolve_data_source(api_key)
     # Create a cache key that includes all parameters to ensure exact matches
-    cache_key = f"{ticker}_{start_date or 'none'}_{end_date}_{limit}"
+    cache_key = f"{data_source}:{ticker}_{start_date or 'none'}_{end_date}_{limit}"
     
     # Check cache first - simple exact match
     if cached_data := _cache.get_insider_trades(cache_key):
         return [InsiderTrade(**trade) for trade in cached_data]
+
+    if data_source == "yahoo":
+        # Not all Yahoo endpoints are consistently available via yfinance.
+        # For now, return an empty list rather than raising.
+        return []
 
     # If not in cache, fetch from API
     headers = {}
@@ -254,12 +309,20 @@ def get_company_news(
     api_key: str = None,
 ) -> list[CompanyNews]:
     """Fetch company news from cache or API."""
+    data_source = _resolve_data_source(api_key)
     # Create a cache key that includes all parameters to ensure exact matches
-    cache_key = f"{ticker}_{start_date or 'none'}_{end_date}_{limit}"
+    cache_key = f"{data_source}:{ticker}_{start_date or 'none'}_{end_date}_{limit}"
     
     # Check cache first - simple exact match
     if cached_data := _cache.get_company_news(cache_key):
         return [CompanyNews(**news) for news in cached_data]
+
+    if data_source == "yahoo":
+        news = _yahoo_client.get_news(ticker, end_date, start_date=start_date, limit=limit)
+        if not news:
+            return []
+        _cache.set_company_news(cache_key, [n.model_dump() for n in news])
+        return news
 
     # If not in cache, fetch from API
     headers = {}
@@ -318,6 +381,11 @@ def get_market_cap(
     api_key: str = None,
 ) -> float | None:
     """Fetch market cap from the API."""
+    data_source = _resolve_data_source(api_key)
+    if data_source == "yahoo":
+        facts = _yahoo_client.get_company_facts(ticker)
+        return facts.market_cap if facts else None
+
     # Check if end_date is today
     if end_date == datetime.datetime.now().strftime("%Y-%m-%d"):
         # Get the market cap from company facts API

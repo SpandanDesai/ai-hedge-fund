@@ -72,14 +72,20 @@ cp .env.example .env
 
 Open and edit the `.env` file to add your API keys:
 ```bash
-# For running LLMs hosted by openai (gpt-4o, gpt-4o-mini, etc.)
+# (Optional) Use free Yahoo Finance data (via yfinance)
+DATA_SOURCE=yahoo
+
+# (Optional) Use local Ollama models (no cloud LLM API keys required)
+OLLAMA_BASE_URL=http://localhost:11434
+
+# (Optional) For running LLMs hosted by openai (gpt-4o, gpt-4o-mini, etc.)
 OPENAI_API_KEY=your-openai-api-key
 
-# For getting financial data to power the hedge fund
+# (Optional) For getting financial data via financialdatasets.ai (only if DATA_SOURCE=financialdatasets)
 FINANCIAL_DATASETS_API_KEY=your-financial-datasets-api-key
 ```
 
-**Important**: You must set at least one LLM API key (e.g. `OPENAI_API_KEY`, `GROQ_API_KEY`, `ANTHROPIC_API_KEY`, or `DEEPSEEK_API_KEY`) for the hedge fund to work. 
+**Important**: You must either (a) set at least one cloud LLM API key (e.g. `OPENAI_API_KEY`, `GROQ_API_KEY`, `ANTHROPIC_API_KEY`, or `DEEPSEEK_API_KEY`) **or** (b) run with `--ollama` to use local models. 
 
 ## How to Run
 
