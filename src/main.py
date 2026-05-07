@@ -1,4 +1,5 @@
 import sys
+import logging
 
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
@@ -12,6 +13,7 @@ from src.utils.display import print_trading_output
 from src.utils.analysts import ANALYST_ORDER, get_analyst_nodes
 from src.utils.progress import progress
 from src.utils.visualize import save_graph_as_png
+from src.utils.logging import setup_logging, logger, error_handler
 from src.cli.input import (
     parse_cli_inputs,
 )
@@ -24,6 +26,9 @@ import json
 # Load environment variables from .env file
 load_dotenv()
 
+# Setup structured logging
+setup_logging()
+
 init(autoreset=True)
 
 
@@ -32,13 +37,13 @@ def parse_hedge_fund_response(response):
     try:
         return json.loads(response)
     except json.JSONDecodeError as e:
-        print(f"JSON decoding error: {e}\nResponse: {repr(response)}")
+        error_handler.handle_error(e, "JSON decoding", response=repr(response))
         return None
     except TypeError as e:
-        print(f"Invalid response type (expected string, got {type(response).__name__}): {e}")
+        error_handler.handle_error(e, "response type validation", response_type=type(response).__name__)
         return None
     except Exception as e:
-        print(f"Unexpected error while parsing response: {e}\nResponse: {repr(response)}")
+        error_handler.handle_error(e, "unexpected parsing error", response=repr(response))
         return None
 
 
@@ -87,6 +92,12 @@ def run_hedge_fund(
             "decisions": parse_hedge_fund_response(final_state["messages"][-1].content),
             "analyst_signals": final_state["data"]["analyst_signals"],
         }
+    except Exception as e:
+        error_handler.handle_error(e, "hedge fund execution", 
+                                  tickers=tickers, 
+                                  start_date=start_date, 
+                                  end_date=end_date)
+        raise  # Re-raise to maintain existing behavior
     finally:
         # Stop progress tracking
         progress.stop()

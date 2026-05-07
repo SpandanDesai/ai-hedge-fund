@@ -1,0 +1,111 @@
+site_name: AI Hedge Fund
+site_description: An AI-powered hedge fund that uses multiple agents to make trading decisions
+site_author: AI Hedge Fund Team
+
+# Repository
+repo_name: ai-hedge-fund
+repo_url: https://github.com/your-username/ai-hedge-fund
+
+# Theme
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotate
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+
+# Plugins
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_signature_annotations: true
+            separate_signature: true
+            heading_level: 3
+
+# Navigation
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Configuration: getting-started/configuration.md
+    - Quick Start: getting-started/quick-start.md
+  - Architecture:
+    - Overview: architecture/overview.md
+    - Data Providers: architecture/data-providers.md
+    - Agents: architecture/agents.md
+    - LLM Integration: architecture/llm-integration.md
+  - API Reference:
+    - Data Models: api/data-models.md
+    - Utilities: api/utils.md
+    - Providers: api/providers.md
+  - Development:
+    - Development Guide: development/guide.md
+    - Testing: development/testing.md
+    - Deployment: development/deployment.md
+  - Examples:
+    - Basic Usage: examples/basic-usage.md
+    - Advanced Usage: examples/advanced-usage.md
+
+# Extras
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/extra.js
+
+# Copyright
+copyright: Copyright &copy; 2024 AI Hedge Fund Team
+
+# Google Analytics (optional)
+# google_analytics:
+#   - UA-XXXXXXXXX-X
+#   - auto
+
+# Extra
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/your-username/ai-hedge-fund
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/aihedgefund
+
+# Markdown extensions
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
